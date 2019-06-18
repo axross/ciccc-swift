@@ -10,34 +10,44 @@ import Foundation
 
 func main() -> Void {
     let argv = ProcessInfo.processInfo.arguments
-    let path = URL(fileURLWithPath: argv[1])
+    let url = URL(fileURLWithPath: argv[1])
     
-    printContentsOfDirectoryRecursively(at: path)
+    do {
+        try printContentsOfDirectoryRecursively(at: url)
+    } catch {
+        print(error);
+    }
 }
 
-func printContentsOfDirectoryRecursively(at: URL, nodePrefix: String = "") -> Void {
-    let contents = try! FileManager().contentsOfDirectory(at: at, includingPropertiesForKeys: [])
+func printContentsOfDirectoryRecursively(at url: URL, nodePrefix: String = "") throws -> Void {
+    let contents = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: [])
     
     for content in contents {
         let isLastContent = content == contents.last!
         let leafPrefix = isLastContent ? "└─" : "├─"
+        let entryType = getEntryType(at: content)
         
         print(nodePrefix + leafPrefix + " " + content.lastPathComponent)
         
-        if isDirectory(at: content) {
+        if (entryType == .directory) {
             let nextNodePrefix = isLastContent ? "   " : "│  "
             
-            printContentsOfDirectoryRecursively(at: content, nodePrefix: nodePrefix + nextNodePrefix)
+            try printContentsOfDirectoryRecursively(at: content, nodePrefix: nodePrefix + nextNodePrefix)
         }
     }
 }
 
-func isDirectory(at: URL) -> Bool {
+func getEntryType(at url: URL) -> EntryType {
     var isDir = ObjCBool(true)
     
-    FileManager.default.fileExists(atPath: at.path, isDirectory: &isDir)
+    FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir)
     
-    return isDir.boolValue
+    return isDir.boolValue ? .directory : .file
+}
+
+enum EntryType {
+    case directory
+    case file
 }
 
 main()
